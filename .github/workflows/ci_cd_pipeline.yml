@@ -5,22 +5,40 @@ on:
     branches:
       - main
 
-jobs:
-  build-test-deploy:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  ci_cd:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar entorno
-        run: bash scripts/generar_entorno.sh
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
 
       - name: Ejecutar pruebas
         run: bash scripts/pruebas_entorno.sh
 
-      - name: Liberar versión
-        run: bash scripts/liberar_version.sh
+      - name: Preparar SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Desplegar aplicación
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          SSH_KEY_PATH: ~/.ssh/deploy_key
+          APP_NAME: ${{ secrets.APP_NAME }}
+          NODE_ENV: production
+          GIT_COMMIT: ${{ github.sha }}
         run: bash scripts/generar_despliegue.sh

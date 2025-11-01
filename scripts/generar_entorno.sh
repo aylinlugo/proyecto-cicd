@@ -1,5 +1,6 @@
-#!/bin/bash
-echo "===> Configurando entorno..."
-cd app       # Entrar a la carpeta donde está package.json
-npm install
-echo "Entorno configurado correctamente."
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "===> Configurando entorno local..."
+mkdir -p logs tmp
+echo "Entorno listo"

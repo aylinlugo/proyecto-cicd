@@ -1,6 +1,6 @@
-#!/bin/bash
-echo "===> Liberando nueva version..."
-VERSION="v$(date +'%Y%m%d%H%M')"
-git tag $VERSION
-git push origin $VERSION
-echo "Version $VERSION liberada correctamente."
+#!/usr/bin/env bash
+set -euo pipefail
+
+npm version patch -m "Liberando nueva versión %s"
+git push origin main --tags
+echo "Versión liberada"
