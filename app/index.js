@@ -8,7 +8,7 @@ function sumar(a, b) {
 
 // Ejecutamos la función y mostramos resultado
 const resultado = sumar(5, 3);
-console.log(`Resultado de sumar(5, 3): ${resultado}`);
+console.log(`Resultado de la suma(5, 3): ${resultado}`);
 
 // Mensaje final
 console.log("App Mini Calculadora");
