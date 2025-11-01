@@ -1,16 +1,18 @@
 #!/bin/bash
-set -e  # Terminar si hay error
+set -e  # Salir si hay un error
 
-echo "==> Ejecutando pruebas del entorno"
+echo "===> Iniciando pruebas del entorno..."
 
-# Verificar Node
-node -v
-npm -v
+# Ir a la carpeta de la app
+cd app
 
-# Ejecutar pruebas (si tienes tests)
-if [ -f package.json ]; then
-  echo "==> Ejecutando npm test"
-  npm test || { echo "Pruebas fallaron"; exit 1; }
+# Instalar dependencias (si no se hizo antes)
+npm install
+
+# Ejecutar tests (si tienes tests en package.json)
+if npm test; then
+  echo "Todas las pruebas pasaron"
+else
+  echo "Algunas pruebas fallaron"
+  exit 1
 fi
-
-echo "==> Pruebas completadas exitosamente"

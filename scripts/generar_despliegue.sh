@@ -1,25 +1,25 @@
 #!/bin/bash
-set -e
+set -e  # Salir si hay un error
 
-echo "==> Conectando al servidor $DEPLOY_HOST"
+echo "===> Iniciando despliegue.
 
+# Variables
+DEPLOY_USER=${DEPLOY_USER}
+DEPLOY_HOST=${DEPLOY_HOST}
+DEPLOY_PATH=${DEPLOY_PATH}
+SSH_KEY_PATH=${SSH_KEY_PATH}
+APP_NAME=${APP_NAME}
+NODE_ENV=${NODE_ENV}
+GIT_COMMIT=${GIT_COMMIT}
+
+# Conectar al servidor y desplegar
 ssh -i "$SSH_KEY_PATH" "$DEPLOY_USER@$DEPLOY_HOST" << EOF
-  set -e
-  echo "==> Navegando al directorio de la aplicación: $DEPLOY_PATH"
-  cd $DEPLOY_PATH
-
-  echo "==> Deteniendo aplicación existente (si existe)"
-  pm2 stop $APP_NAME || true
-
-  echo "==> Actualizando código desde GitHub"
+  echo "Desplegando $APP_NAME en $DEPLOY_PATH"
+  cd $DEPLOY_PATH || mkdir -p $DEPLOY_PATH && cd $DEPLOY_PATH
   git fetch --all
-  git reset --hard origin/main
-
-  echo "==> Instalando dependencias en el servidor"
-  npm install
-
-  echo "==> Iniciando aplicación con PM2"
-  NODE_ENV=$NODE_ENV pm2 start index.js --name "$APP_NAME"
-
-  echo "==> Despliegue completado con éxito"
+  git reset --hard $GIT_COMMIT
+  npm install --production
+  pm2 restart $APP_NAME || pm2 start app/index.js --name "$APP_NAME" --env $NODE_ENV
 EOF
+
+echo "Despliegue completado"
