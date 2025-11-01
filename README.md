@@ -1,4 +1,4 @@
-App CI/CD - Gestión de Tareas
+##App CI/CD - Gestión de Tareas
 
 ## Descripción
 Esta es una aplicación sencilla de gestión de tareas desarrollada en Node.js.  
@@ -9,23 +9,22 @@ El proyecto está preparado para integrarse en un flujo de CI/CD y puede ejecuta
 ## Estructura del Proyecto
 La rama principal (main) del proyecto tiene la siguiente estructura:
 
+```
 main/
-│
-├─ .github/workflows/
+├─ .github/
+│ └─ workflows/
 │ └─ ci_cd_pipeline.yml # Archivo de configuración del pipeline CI/CD
-│
 ├─ app/
 │ ├─ index.js # Archivo principal de la aplicación
 │ ├─ package.json # Dependencias y scripts de Node.js
 │ └─ package-lock.json # Registro exacto de dependencias instaladas
-│
 ├─ scripts/
 │ ├─ generar_despliegue.sh # Script para generar el despliegue
 │ ├─ generar_entorno.sh # Script para configurar el entorno
 │ ├─ liberar_version.sh # Script para liberar nuevas versiones
 │ └─ pruebas_entorno.sh # Script para pruebas del entorno
-│
 └─ README.md # Documentación del proyecto
+```
 
 
 #Flujo CI/CD
