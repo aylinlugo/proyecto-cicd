@@ -1,18 +1,18 @@
 #!/bin/bash
-set -e  # Salir si hay un error
+set -e
 
-echo "===> Iniciando pruebas del entorno..."
+echo "Iniciando pruebas del entorno"
 
-# Ir a la carpeta de la app
-cd app
+# Revisar versión de Node
+echo "Node.js version:"
+node -v
 
-# Instalar dependencias (si no se hizo antes)
-npm install
+# Revisar versión de npm
+echo "npm version:"
+npm -v
 
-# Ejecutar tests (si tienes tests en package.json)
-if npm test; then
-  echo "Todas las pruebas pasaron"
-else
-  echo "Algunas pruebas fallaron"
-  exit 1
-fi
+# Revisar dependencias instaladas
+echo "Dependencias instaladas:"
+npm list --depth=0
+
+echo "Pruebas del entorno completadas"

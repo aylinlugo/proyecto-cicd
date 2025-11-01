@@ -1,25 +1,19 @@
 #!/bin/bash
-set -e  # Salir si hay un error
+set -e
 
-echo "===> Iniciando despliegue.
+echo "Iniciando despliegue de la aplicación"
 
-# Variables
-DEPLOY_USER=${DEPLOY_USER}
-DEPLOY_HOST=${DEPLOY_HOST}
-DEPLOY_PATH=${DEPLOY_PATH}
-SSH_KEY_PATH=${SSH_KEY_PATH}
-APP_NAME=${APP_NAME}
-NODE_ENV=${NODE_ENV}
-GIT_COMMIT=${GIT_COMMIT}
+# Variables de entorno
+echo "Desplegando $APP_NAME a $DEPLOY_HOST:$DEPLOY_PATH"
 
-# Conectar al servidor y desplegar
-ssh -i "$SSH_KEY_PATH" "$DEPLOY_USER@$DEPLOY_HOST" << EOF
-  echo "Desplegando $APP_NAME en $DEPLOY_PATH"
-  cd $DEPLOY_PATH || mkdir -p $DEPLOY_PATH && cd $DEPLOY_PATH
-  git fetch --all
-  git reset --hard $GIT_COMMIT
-  npm install --production
-  pm2 restart $APP_NAME || pm2 start app/index.js --name "$APP_NAME" --env $NODE_ENV
+# Copiar archivos al servidor
+scp -i $SSH_KEY_PATH -r app/* $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH
+
+# Conectarse por SSH y reiniciar la app (Node.js ejemplo)
+ssh -i $SSH_KEY_PATH $DEPLOY_USER@$DEPLOY_HOST << EOF
+cd $DEPLOY_PATH
+npm install --production
+pm2 restart $APP_NAME || pm2 start index.js --name "$APP_NAME"
 EOF
 
 echo "Despliegue completado"
