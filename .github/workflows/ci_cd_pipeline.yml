@@ -1,0 +1,26 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar entorno
+        run: bash scripts/generar_entorno.sh
+
+      - name: Ejecutar pruebas
+        run: bash scripts/pruebas_entorno.sh
+
+      - name: Liberar versión
+        run: bash scripts/liberar_version.sh
+
+      - name: Desplegar aplicación
+        run: bash scripts/generar_despliegue.sh
