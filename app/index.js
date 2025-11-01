@@ -1,43 +1,50 @@
-console.log("===> Iniciando Mini App Gestión de Tareas");
+// app/index.js
+const express = require("express");
+const bodyParser = require("body-parser");
 
-// Lista de tareas (simulada en memoria)
+const app = express();
+const PORT = 3000;
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Lista de tareas en memoria
 let tareas = [];
 
-// Función para agregar tarea
-function agregarTarea(titulo) {
-    const tarea = { id: tareas.length + 1, titulo, completada: false };
-    tareas.push(tarea);
-    console.log(`Tarea agregada: ${titulo}`);
-}
+// Página principal: lista de tareas y formulario
+app.get("/", (req, res) => {
+  let html = "<h1>Mini App CI/CD - Gestion de Tareas</h1>";
+  html += "<h2>Tareas:</h2><ul>";
+  tareas.forEach(t => {
+    html += `<li>${t.id} - ${t.titulo} [${t.completada ? "Completada" : "Pendiente"}]
+              <a href='/completar/${t.id}'>Completar</a></li>`;
+  });
+  html += "</ul>";
+  html += `
+    <h3>Agregar tarea</h3>
+    <form method='POST' action='/agregar'>
+      <input type='text' name='titulo' required/>
+      <button type='submit'>Agregar</button>
+    </form>
+  `;
+  res.send(html);
+});
 
-// Función para listar tareas
-function listarTareas() {
-    console.log("=== Lista de Tareas ===");
-    if (tareas.length === 0) {
-        console.log("No hay tareas");
-    } else {
-        tareas.forEach(t => {
-            console.log(`#${t.id} - ${t.titulo} [${t.completada ? "✅" : "❌"}]`);
-        });
-    }
-}
+// Agregar tarea
+app.post("/agregar", (req, res) => {
+  const tarea = { id: tareas.length + 1, titulo: req.body.titulo, completada: false };
+  tareas.push(tarea);
+  res.redirect("/");
+});
 
-// Función para marcar como completada
-function completarTarea(id) {
-    const tarea = tareas.find(t => t.id === id);
-    if (tarea) {
-        tarea.completada = true;
-        console.log(`Tarea completada: ${tarea.titulo}`);
-    } else {
-        console.log(`Tarea con ID ${id} no encontrada`);
-    }
-}
+// Completar tarea
+app.get("/completar/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const tarea = tareas.find(t => t.id === id);
+  if (tarea) tarea.completada = true;
+  res.redirect("/");
+});
 
-// Simulación de uso
-agregarTarea("Preparar documentación CI/CD");
-agregarTarea("Subir cambios a GitHub");
-listarTareas();
-completarTarea(1);
-listarTareas();
-
-console.log("Mini App CI/CD ejecutada correctamente");
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+});
