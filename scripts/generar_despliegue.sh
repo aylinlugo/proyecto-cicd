@@ -1,36 +1,25 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e
 
-# Variables necesarias
-: "${DEPLOY_USER:?Falta DEPLOY_USER}"
-: "${DEPLOY_HOST:?Falta DEPLOY_HOST}"
-: "${DEPLOY_PATH:?Falta DEPLOY_PATH}"
-: "${SSH_KEY_PATH:?Falta SSH_KEY_PATH}"
-: "${APP_NAME:?Falta APP_NAME}"
+echo "==> Conectando al servidor $DEPLOY_HOST"
 
-TIMESTAMP=$(date +%Y%m%d%H%M%S)
-RELEASE_DIR="${DEPLOY_PATH}/releases/${TIMESTAMP}"
-CURRENT_LINK="${DEPLOY_PATH}/current"
+ssh -i "$SSH_KEY_PATH" "$DEPLOY_USER@$DEPLOY_HOST" << EOF
+  set -e
+  echo "==> Navegando al directorio de la aplicación: $DEPLOY_PATH"
+  cd $DEPLOY_PATH
 
-echo "===> Creando release en servidor..."
-ssh -i "$SSH_KEY_PATH" $DEPLOY_USER@$DEPLOY_HOST "mkdir -p $RELEASE_DIR"
+  echo "==> Deteniendo aplicación existente (si existe)"
+  pm2 stop $APP_NAME || true
 
-echo "===> Empaquetando app..."
-tar --exclude='./node_modules' --exclude='.git' -czf /tmp/app.tar.gz -C app .
+  echo "==> Actualizando código desde GitHub"
+  git fetch --all
+  git reset --hard origin/main
 
-echo "===> Subiendo paquete al servidor..."
-scp -i "$SSH_KEY_PATH" /tmp/app.tar.gz $DEPLOY_USER@$DEPLOY_HOST:$RELEASE_DIR/
+  echo "==> Instalando dependencias en el servidor"
+  npm install
 
-echo "===> Preparando release en servidor..."
-ssh -i "$SSH_KEY_PATH" $DEPLOY_USER@$DEPLOY_HOST bash -lc "
-  set -euo pipefail
-  cd $RELEASE_DIR
-  tar -xzf app.tar.gz
-  rm app.tar.gz
-  npm ci --production
-  ln -sfn $RELEASE_DIR $CURRENT_LINK
-  sudo systemctl restart $APP_NAME.service
-"
+  echo "==> Iniciando aplicación con PM2"
+  NODE_ENV=$NODE_ENV pm2 start index.js --name "$APP_NAME"
 
-echo "===> Despliegue completado"
-rm -f /tmp/app.tar.gz
+  echo "==> Despliegue completado con éxito"
+EOF

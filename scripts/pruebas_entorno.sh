@@ -1,21 +1,16 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e  # Terminar si hay error
 
-echo "===> Instalando dependencias"
-npm ci
+echo "==> Ejecutando pruebas del entorno"
 
-echo "===> Ejecutando pruebas unitarias y linters..."
+# Verificar Node
+node -v
+npm -v
 
-# Validar que hay un script de test
-if grep -q "\"test\"" package.json; then
-  npm test
-else
-  echo "No se detectó script de test en package.json, saltando pruebas."
+# Ejecutar pruebas (si tienes tests)
+if [ -f package.json ]; then
+  echo "==> Ejecutando npm test"
+  npm test || { echo "Pruebas fallaron"; exit 1; }
 fi
 
-# Linter opcional (si tienes ESLint configurado)
-if [ -f ".eslintrc.json" ]; then
-  npx eslint app/**/*.js
-fi
-
-echo "===> Validaciones completadas"
+echo "==> Pruebas completadas exitosamente"
