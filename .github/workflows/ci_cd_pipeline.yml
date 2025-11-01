@@ -11,32 +11,39 @@ permissions:
 jobs:
   ci_cd:
     runs-on: ubuntu-latest
-    steps:
 
-      - name: Checkout del repositorio
+    steps:
+      # 1. Clonar el repositorio
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      # 2. Configurar Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
+      # 3. Instalar dependencias en app/
       - name: Instalar dependencias
+        working-directory: app
         run: npm install
 
+      # 4. Ejecutar pruebas
       - name: Ejecutar pruebas
-        run: bash scripts/pruebas_entorno.sh
+        working-directory: app
+        run: bash ../scripts/pruebas_entorno.sh
 
+      # 5. Preparar SSH para despliegue
       - name: Preparar SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
 
+      # 6. Desplegar aplicación
       - name: Desplegar aplicación
         env:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
