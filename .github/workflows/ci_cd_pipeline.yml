@@ -1,56 +1,37 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline (Windows)
 
 on:
   push:
-    branches:
-      - main
-
-permissions:
-  contents: read
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  ci_cd:
-    runs-on: ubuntu-latest
+  build-test-deploy:
+    runs-on: windows-latest
 
     steps:
-      # 1. Clonar el repositorio
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout del repositorio
+        uses: actions/checkout@v3
 
-      # 2. Configurar Node.js
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
 
-      # 3. Instalar dependencias en app/
-      - name: Instalar dependencias
-        working-directory: app
-        run: npm install
+      - name: Generar entorno
+        run: .\scripts\generar_entorno.ps1
+        shell: pwsh
 
-      # 4. Ejecutar pruebas
       - name: Ejecutar pruebas
-        working-directory: app
-        run: bash ../scripts/pruebas_entorno.sh
+        run: .\scripts\pruebas_entorno.ps1
+        shell: pwsh
 
-      # 5. Preparar SSH para despliegue
-      - name: Preparar SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+      - name: Generar despliegue
+        run: .\scripts\generar_despliegue.ps1
+        shell: pwsh
 
-      # 6. Desplegar aplicación
-      - name: Desplegar aplicación
-        env:
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          SSH_KEY_PATH: ~/.ssh/deploy_key
-          APP_NAME: ${{ secrets.APP_NAME }}
-          NODE_ENV: production
-          GIT_COMMIT: ${{ github.sha }}
-        run: bash scripts/generar_despliegue.sh
+      - name: Liberar versión
+        if: github.ref == 'refs/heads/main'
+        run: .\scripts\liberar_version.ps1 -Version 1.0.0
+        shell: pwsh
