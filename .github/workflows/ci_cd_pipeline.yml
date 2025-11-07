@@ -1,5 +1,10 @@
 name: CI/CD Pipeline (Windows)
 
+permissions:
+  contents: write      # ✅ Permiso para hacer push y crear tags
+  actions: read
+  checks: write
+
 on:
   push:
     branches: [ "main" ]
@@ -13,6 +18,9 @@ jobs:
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Configurar Node.js
         uses: actions/setup-node@v3
@@ -31,7 +39,25 @@ jobs:
         run: .\scripts\generar_despliegue.ps1
         shell: pwsh
 
-      - name: Liberar versión
+      # 🔹 Nueva etapa: calcular automáticamente la próxima versión
+      - name: Calcular siguiente versión
+        id: version
+        shell: pwsh
+        run: |
+          Write-Host "==> Calculando siguiente versión..."
+          $tag = git tag --sort=-v:refname | Select-Object -First 1
+          if (-not $tag) { $tag = "v1.0.0" }
+          else {
+            $version = $tag.TrimStart("v") -split '\.'
+            $major = [int]$version[0]
+            $minor = [int]$version[1]
+            $patch = [int]$version[2] + 1
+            $tag = "v$major.$minor.$patch"
+          }
+          echo "next_tag=$tag" >> $env:GITHUB_OUTPUT
+          Write-Host "Versión siguiente: $tag"
+
+      - name: Liberar versión automáticamente
         if: github.ref == 'refs/heads/main'
-        run: .\scripts\liberar_version.ps1 -Version 1.0.0
+        run: .\scripts\liberar_version.ps1 -Version ${{ steps.version.outputs.next_tag }}
         shell: pwsh
