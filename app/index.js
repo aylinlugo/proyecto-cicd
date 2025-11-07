@@ -1,15 +1,18 @@
-// ERROR_RUNTIME_READ - app/index.js
+// ERROR_INSECURE_EVAL - app/index.js
 const express = require('express');
-const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
-// Al requerir/ejecutar este archivo intentará leer un archivo que no existe y lanzará excepción
-const data = fs.readFileSync('C:\\ruta\\que\\no\\existe.txt', 'utf8');
-console.log(data);
+// PELIGRO: eval con entrada del usuario (ejemplo didáctico)
+app.get('/calc', (req, res) => {
+  const expr = req.query.expr || '2+2';
+  // Uso de eval es inseguro — pipeline debe detectarlo con ESLint o check_security
+  const result = eval(expr);
+  res.send(`Resultado: ${result}`);
+});
 
 app.get('/', (req, res) => {
-  res.send('<h1>Si ves esto, no hubo crash</h1>');
+  res.send('<h1>Endpoint /calc disponible (inseguro)</h1>');
 });
 
 app.listen(PORT, () => {
