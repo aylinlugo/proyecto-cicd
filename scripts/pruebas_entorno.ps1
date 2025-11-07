@@ -7,7 +7,7 @@ Set-Location "$PSScriptRoot/../app"
 # Verificar si existe package.json
 # ==============================
 if (-Not (Test-Path "package.json")) {
-    Write-Error "❌ No se encontró package.json en la carpeta /app. Asegúrate de tenerlo antes de ejecutar las pruebas."
+    Write-Error "No se encontrO package.json en la carpeta /app. Asegúrate de tenerlo antes de ejecutar las pruebas."
     exit 1
 }
 
@@ -18,7 +18,7 @@ Write-Host "==> Instalando dependencias..."
 npm install
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "❌ Error al instalar dependencias. Deteniendo pipeline."
+    Write-Error "Error al instalar dependencias. Deteniendo pipeline."
     exit 1
 }
 
@@ -32,10 +32,10 @@ if ((Get-Content package.json) -match '"test"') {
         Write-Error "❌ Las pruebas fallaron. Deteniendo pipeline."
         exit 1
     } else {
-        Write-Host "✅ Pruebas definidas en 'npm test' completadas exitosamente."
+        Write-Host "Pruebas definidas en 'npm test' completadas exitosamente."
     }
 } else {
-    Write-Host "⚠️ No se encontró script 'test' en package.json. Continuando con verificación de sintaxis..."
+    Write-Host "No se encontro script 'test' en package.json. Continuando con verificación de sintaxis..."
 }
 
 # ==============================
@@ -45,14 +45,14 @@ Write-Host "==> Verificando errores de sintaxis en el código..."
 try {
     node --check .\index.js
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✅ Verificación de sintaxis completada correctamente."
+        Write-Host "Verificacion de sintaxis completada correctamente."
     } else {
-        Write-Error "❌ Se detectaron errores de sintaxis en index.js."
+        Write-Error "Se detectaron errores de sintaxis en index.js."
         exit 1
     }
 }
 catch {
-    Write-Host "❌ Error detectado durante la verificación de sintaxis:"
+    Write-Host "Error detectado durante la verificación de sintaxis:"
     Write-Host $_.Exception.Message
     exit 1
 }
@@ -62,4 +62,4 @@ catch {
 # ==============================
 Set-Location "$PSScriptRoot/.."
 
-Write-Host "==> Fin del proceso de pruebas automáticas."
+Write-Host "==> Fin del proceso de pruebas automaticas."
