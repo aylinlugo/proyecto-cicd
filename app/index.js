@@ -1,12 +1,16 @@
-// ERROR_SINTAXIS - app/index.js
+// ERROR_RUNTIME_READ - app/index.js
 const express = require('express');
+const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
+// Al requerir/ejecutar este archivo intentará leer un archivo que no existe y lanzará excepción
+const data = fs.readFileSync('C:\\ruta\\que\\no\\existe.txt', 'utf8');
+console.log(data);
+
 app.get('/', (req, res) => {
-  // Falta paréntesis y llave de cierre -> SyntaxError
-  res.send("<h1>Inicio - Error de sintaxis</h1>"
-);
+  res.send('<h1>Si ves esto, no hubo crash</h1>');
+});
 
 app.listen(PORT, () => {
   console.log(`Servidor en http://localhost:${PORT}`);
