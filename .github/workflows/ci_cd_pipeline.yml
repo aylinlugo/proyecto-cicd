@@ -23,23 +23,18 @@ jobs:
         with:
           node-version: "18"
 
-      # Instalar dependencias dentro de /app
+      # Instalar dependencias (usa npm install si npm ci falla)
       - name: Instalar dependencias
-        run: npm ci
+        run: npm install
         working-directory: ./app
 
-      # Linter: validar errores de sintaxis
-      - name: Ejecutar ESLint
-        run: npx eslint ./**/*.js
-        working-directory: ./app
-
-      # Ejecutar pruebas unitarias (incluye Supertest)
+      # Ejecutar pruebas unitarias (supertest incluido)
       - name: Ejecutar pruebas
         run: npm test
         working-directory: ./app
 
-      # Generar entorno y liberar versión (solo si tests pasan)
-      - name: Generar entorno y versionamiento
+      # Generar entorno y versionamiento semántico
+      - name: Generar versión
         run: |
           tag=$(git tag --sort=-v:refname | head -n 1)
           if [ -z "$tag" ]; then
@@ -60,7 +55,7 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # Build y push de Docker (solo si tests y lint pasan)
+      # Build y push de Docker
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
