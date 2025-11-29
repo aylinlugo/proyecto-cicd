@@ -1,4 +1,4 @@
-name: CI/CD Pipeline Completo
+name: CI/CD Pipeline con Docker y Railway
 
 on:
   push:
@@ -7,14 +7,14 @@ on:
     branches: [ "main" ]
 
 jobs:
-  validate-build-deploy:
+  build-test-deploy:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: production
 
     defaults:
       run:
-        working-directory: ./app  # Todas las acciones se ejecutan dentro de /app
+        working-directory: ./app  # <- todos los comandos se ejecutan dentro de /app
 
     steps:
       # 1. Descargar el código
@@ -27,15 +27,15 @@ jobs:
         with:
           node-version: "18"
 
-      # 3. Instalar dependencias (npm ci requiere package-lock.json)
+      # 3. Instalar dependencias (incluye devDependencies como jest)
       - name: Instalar dependencias
-        run: npm ci
+        run: npm install
 
       # 4. Ejecutar pruebas unitarias con Jest
       - name: Ejecutar pruebas
-        run: npm test
+        run: npx jest --runInBand
 
-      # 5. Generar entorno y versionamiento (solo si tests pasan)
+      # 5. Generar versión semántica automática
       - name: Generar versión semántica
         run: |
           tag=$(git tag --sort=-v:refname | head -n 1)
@@ -57,12 +57,12 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # 7. Build y push de Docker (solo si tests pasan)
+      # 7. Build y push de Docker
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./app
-          file: ./app/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
