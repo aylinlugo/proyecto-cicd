@@ -1,26 +1,65 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline Completo
 
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  deploy:
+  validate-build-deploy:
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
 
     steps:
-      # 1. Descargar el código
-      - name: Checkout code
+      # Descargar el código
+      - name: Checkout del repositorio
         uses: actions/checkout@v3
 
-      # 2. Login a Docker Hub
-      - name: Login to Docker Hub
+      # Configurar Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      # Instalar dependencias
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Linter: validar errores de sintaxis
+      - name: Ejecutar ESLint
+        run: npx eslint ./app/**/*.js
+
+      # Ejecutar pruebas unitarias
+      - name: Ejecutar pruebas
+        run: npm test
+
+      # Generar entorno y liberar versión (solo si tests pasan)
+      - name: Generar entorno y versionamiento
+        run: |
+          # Tu script de PowerShell adaptado a Linux o bash
+          # Ejemplo básico para versionamiento semántico
+          tag=$(git tag --sort=-v:refname | head -n 1)
+          if [ -z "$tag" ]; then
+            tag="v1.0.0"
+          else
+            IFS='.' read -r major minor patch <<< "${tag#v}"
+            patch=$((patch+1))
+            tag="v$major.$minor.$patch"
+          fi
+          echo "Nueva versión: $tag"
+          echo "next_tag=$tag" >> $GITHUB_ENV
+        shell: bash
+
+      # Login a Docker Hub
+      - name: Login a Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # 3. Construir y subir la imagen
+      # Build y push de Docker (solo si tests y lint pasan)
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -29,7 +68,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
-      # 4. Deploy a Railway (usando Docker directamente)
-      - name: Deploy to Railway via Docker
+      # Deploy a Railway
+      - name: Deploy to Railway
         run: |
-          echo "Deploy usando Railway: solo necesita Docker image push"
+          echo "Deploy usando Railway: imagen ya subida a Docker Hub"
