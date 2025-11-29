@@ -62,6 +62,7 @@ app.get("/completar/:id", (req, res) => {
 // Export para pruebas
 module.exports = app;
 
+
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
