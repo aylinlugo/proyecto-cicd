@@ -9,46 +9,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      #  Descargar el código del repositorio
+      # 1. Descargar el código
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Login en Docker Hub
+      # 2. Login a Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      #  Construir y subir la imagen Docker
+      # 3. Construir y subir la imagen
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./app           # Carpeta con tu código
-          file: ./Dockerfile       # Dockerfile en la raíz
+          context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
-      # Desplegar en el servidor por SSH
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_SSH_PORT }}
-          script: |
-            echo "Deteniendo contenedor anterior si existe..."
-            docker stop proyecto-cicd || true
-            docker rm proyecto-cicd || true
-
-            echo "Extrayendo nueva imagen..."
-            docker pull ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
-
-            echo "Ejecutando contenedor..."
-            docker run -d \
-              -p 3000:3000 \
-              --name proyecto-cicd \
-              ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
-
-            echo "Despliegue completado ✅"
+      # 4. Deploy a Railway (usando Docker directamente)
+      - name: Deploy to Railway via Docker
+        run: |
+          echo "Deploy usando Railway: solo necesita Docker image push"
