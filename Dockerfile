@@ -1,18 +1,17 @@
-# Dockerfile fuera de app/
 FROM node:18-alpine
 
 WORKDIR /usr/src/app
 
-# Copiamos solo package.json y package-lock.json primero
+# Copiar package.json y package-lock.json primero
 COPY app/package*.json ./
 
-# Instalamos dependencias de producción
+# Instalar dependencias de producción
 RUN npm ci --only=production
 
-# Copiamos todo el contenido de la carpeta app
+# Copiar todo el contenido de la carpeta app
 COPY app/ .
 
-# Exponemos el puerto de la app
+# Exponer puerto
 EXPOSE 3000
 
 # Healthcheck
