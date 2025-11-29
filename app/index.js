@@ -1,9 +1,22 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const promBundle = require("express-prom-bundle");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
+// Middleware para métricas
+const metricsMiddleware = promBundle({
+  includeMethod: true,
+  includePath: true,
+  includeStatusCode: true,
+  promClient: {
+    collectDefaultMetrics: {}
+  }
+});
+app.use(metricsMiddleware);
+
+// Middleware body parser
 app.use(bodyParser.urlencoded({ extended: true }));
 
 let tareas = [];
@@ -16,8 +29,7 @@ app.get("/", (req, res) => {
               <a href='/completar/${t.id}'>Completar</a></li>`;
   });
   html += "</ul>";
-  html 
-  += `
+  html += `
     <h3>Agregar tarea</h3>
     <form method='POST' action='/agregar'>
       <input type='text' name='titulo' required/>
@@ -27,12 +39,19 @@ app.get("/", (req, res) => {
   res.send(html);
 });
 
+// Health check para CI/CD
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// Agregar tareas
 app.post("/agregar", (req, res) => {
   const tarea = { id: tareas.length + 1, titulo: req.body.titulo, completada: false };
   tareas.push(tarea);
   res.redirect("/");
 });
 
+// Completar tareas
 app.get("/completar/:id", (req, res) => {
   const id = Number(req.params.id);
   const tarea = tareas.find(t => t.id === id);
@@ -40,8 +59,11 @@ app.get("/completar/:id", (req, res) => {
   res.redirect("/");
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+// Export para pruebas
+module.exports = app;
 
-
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+  });
+}
