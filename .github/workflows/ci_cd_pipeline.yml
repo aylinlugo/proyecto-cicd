@@ -1,71 +1,54 @@
-name: CI/CD Pipeline Completo
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
-  build-test-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    env:
-      NODE_ENV: production
 
     steps:
-      # 1️⃣ Descargar código
-      - name: Checkout del repositorio
+      #  Descargar el código del repositorio
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Configurar Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-
-      # 3️⃣ Instalar dependencias (dentro de /app)
-      - name: Instalar dependencias
-        run: npm ci
-        working-directory: ./app
-
-      # 4️⃣ Ejecutar pruebas unitarias con Jest
-      - name: Ejecutar pruebas
-        run: npm test
-        working-directory: ./app
-
-      # 5️⃣ Calcular versión automática
-      - name: Calcular siguiente versión
-        id: version
-        run: |
-          tag=$(git tag --sort=-v:refname | head -n 1)
-          if [ -z "$tag" ]; then
-            tag="v1.0.0"
-          else
-            IFS='.' read -r major minor patch <<< "${tag#v}"
-            patch=$((patch+1))
-            tag="v$major.$minor.$patch"
-          fi
-          echo "next_tag=$tag" >> $GITHUB_ENV
-          echo "Versión siguiente: $tag"
-        shell: bash
-
-      # 6️⃣ Login a Docker Hub
-      - name: Login a Docker Hub
+      # Login en Docker Hub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # 7️⃣ Build y push de Docker
-      - name: Build y push Docker image
+      #  Construir y subir la imagen Docker
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./app             # Contexto es la carpeta /app
-          file: ./app/Dockerfile     # Dockerfile dentro de /app
+          context: ./app           # Carpeta con tu código
+          file: ./Dockerfile       # Dockerfile en la raíz
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
-      # 8️⃣ Deploy a Railway
-      - name: Deploy a Railway
-        run: |
-          echo "Deploy usando Railway: imagen ya subida a Docker Hub"
+      # Desplegar en el servidor por SSH
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          script: |
+            echo "Deteniendo contenedor anterior si existe..."
+            docker stop proyecto-cicd || true
+            docker rm proyecto-cicd || true
+
+            echo "Extrayendo nueva imagen..."
+            docker pull ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
+
+            echo "Ejecutando contenedor..."
+            docker run -d \
+              -p 3000:3000 \
+              --name proyecto-cicd \
+              ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
+
+            echo "Despliegue completado ✅"
