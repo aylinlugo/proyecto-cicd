@@ -1,4 +1,9 @@
-name: CI/CD Pipeline con Docker y Railway
+name: CI/CD Pipeline (Windows)
+
+permissions:
+  contents: write
+  actions: read
+  checks: write
 
 on:
   push:
@@ -8,65 +13,77 @@ on:
 
 jobs:
   build-test-deploy:
-    runs-on: ubuntu-latest
-    env:
-      NODE_ENV: production
-
-    defaults:
-      run:
-        working-directory: ./app  # <- todos los comandos se ejecutan dentro de /app
+    runs-on: windows-latest
 
     steps:
-      # 1. Descargar el código
+      # 1. Checkout
       - name: Checkout del repositorio
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
       # 2. Configurar Node.js
-      - name: Setup Node.js
+      - name: Configurar Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
-      # 3. Instalar dependencias (incluye devDependencies como jest)
-      - name: Instalar dependencias
-        run: npm install
+      # 3. Generar entorno
+      - name: Generar entorno
+        run: .\scripts\generar_entorno.ps1
+        shell: pwsh
 
-      # 4. Ejecutar pruebas unitarias con Jest
+      # 4. Ejecutar pruebas
       - name: Ejecutar pruebas
-        run: npx jest --runInBand
+        run: .\scripts\pruebas_entorno.ps1
+        shell: pwsh
 
-      # 5. Generar versión semántica automática
-      - name: Generar versión semántica
+      # 5. Generar despliegue (versionamiento)
+      - name: Generar despliegue
+        run: .\scripts\generar_despliegue.ps1
+        shell: pwsh
+
+      # 6. Calcular siguiente versión automáticamente
+      - name: Calcular siguiente versión
+        id: version
+        shell: pwsh
         run: |
-          tag=$(git tag --sort=-v:refname | head -n 1)
-          if [ -z "$tag" ]; then
-            tag="v1.0.0"
-          else
-            IFS='.' read -r major minor patch <<< "${tag#v}"
-            patch=$((patch+1))
-            tag="v$major.$minor.$patch"
-          fi
-          echo "Nueva versión: $tag"
-          echo "next_tag=$tag" >> $GITHUB_ENV
-        shell: bash
+          Write-Host "==> Calculando siguiente versión..."
+          $tag = git tag --sort=-v:refname | Select-Object -First 1
+          if (-not $tag) { $tag = "v1.0.0" }
+          else {
+            $version = $tag.TrimStart("v") -split '\.'
+            $major = [int]$version[0]
+            $minor = [int]$version[1]
+            $patch = [int]$version[2] + 1
+            $tag = "v$major.$minor.$patch"
+          }
+          echo "next_tag=$tag" >> $env:GITHUB_OUTPUT
+          Write-Host "Versión siguiente: $tag"
 
-      # 6. Login a Docker Hub
+      # 7. Liberar versión automáticamente
+      - name: Liberar versión automáticamente
+        if: github.ref == 'refs/heads/main'
+        run: .\scripts\liberar_version.ps1 -Version ${{ steps.version.outputs.next_tag }}
+        shell: pwsh
+
+      # 8. Login a Docker Hub
       - name: Login a Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # 7. Build y push de Docker
+      # 9. Build y push de Docker
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
+        run: |
+          docker build -t ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest .
+          docker push ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
+        shell: pwsh
 
-      # 8. Deploy a Railway
+      # 10. Deploy a Railway
       - name: Deploy to Railway
         run: |
           echo "Deploy usando Railway: imagen ya subida a Docker Hub"
+        shell: pwsh
