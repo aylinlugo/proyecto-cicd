@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const promBundle = require("express-prom-bundle");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // Railway asigna el puerto automáticamente
 
 // Middleware para métricas
 const metricsMiddleware = promBundle({
@@ -21,6 +21,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 let tareas = [];
 
+// Ruta principal
 app.get("/", (req, res) => {
   let html = "<h1>Mini App CI/CD - Gestión de Tareas</h1>";
   html += "<h2>Tareas:</h2><ul>";
@@ -39,7 +40,7 @@ app.get("/", (req, res) => {
   res.send(html);
 });
 
-// Health check para CI/CD
+// Health check
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
@@ -59,11 +60,16 @@ app.get("/completar/:id", (req, res) => {
   res.redirect("/");
 });
 
-// Export para pruebas
-module.exports = app;
+// Evita error 404 en la raíz
+app.use((req, res) => {
+  res.status(404).send("<h1>404 - Página no encontrada</h1><a href='/'>Ir al inicio</a>");
+});
 
+// Iniciar servidor
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
   });
 }
+
+module.exports = app;
