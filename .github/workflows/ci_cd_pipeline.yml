@@ -12,29 +12,31 @@ jobs:
     env:
       NODE_ENV: production
 
+    defaults:
+      run:
+        working-directory: ./app  # Todas las acciones se ejecutan dentro de /app
+
     steps:
-      # Descargar el código
+      # 1. Descargar el código
       - name: Checkout del repositorio
         uses: actions/checkout@v3
 
-      # Configurar Node.js
+      # 2. Configurar Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
-      # Instalar dependencias (usa npm install si npm ci falla)
+      # 3. Instalar dependencias (npm ci requiere package-lock.json)
       - name: Instalar dependencias
-        run: npm install
-        working-directory: ./app
+        run: npm ci
 
-      # Ejecutar pruebas unitarias (supertest incluido)
+      # 4. Ejecutar pruebas unitarias con Jest
       - name: Ejecutar pruebas
         run: npm test
-        working-directory: ./app
 
-      # Generar entorno y versionamiento semántico
-      - name: Generar versión
+      # 5. Generar entorno y versionamiento (solo si tests pasan)
+      - name: Generar versión semántica
         run: |
           tag=$(git tag --sort=-v:refname | head -n 1)
           if [ -z "$tag" ]; then
@@ -48,14 +50,14 @@ jobs:
           echo "next_tag=$tag" >> $GITHUB_ENV
         shell: bash
 
-      # Login a Docker Hub
+      # 6. Login a Docker Hub
       - name: Login a Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # Build y push de Docker
+      # 7. Build y push de Docker (solo si tests pasan)
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -64,7 +66,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
-      # Deploy a Railway
+      # 8. Deploy a Railway
       - name: Deploy to Railway
         run: |
           echo "Deploy usando Railway: imagen ya subida a Docker Hub"
