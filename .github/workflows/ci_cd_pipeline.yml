@@ -13,33 +13,31 @@ jobs:
       NODE_ENV: production
 
     steps:
-      # Descargar el código
+      # 1. Descargar el código
       - name: Checkout del repositorio
         uses: actions/checkout@v3
 
-      # Configurar Node.js
+      # 2. Configurar Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
-      # Instalar dependencias
+      # 3. Instalar dependencias
       - name: Instalar dependencias
         run: npm ci
 
-      # Linter: validar errores de sintaxis
+      # 4. Linter: validar errores de sintaxis
       - name: Ejecutar ESLint
         run: npx eslint ./app/**/*.js
 
-      # Ejecutar pruebas unitarias
+      # 5. Ejecutar pruebas unitarias
       - name: Ejecutar pruebas
         run: npm test
 
-      # Generar entorno y liberar versión (solo si tests pasan)
+      # 6. Generar entorno y versionamiento (solo si tests pasan)
       - name: Generar entorno y versionamiento
         run: |
-          # Tu script de PowerShell adaptado a Linux o bash
-          # Ejemplo básico para versionamiento semántico
           tag=$(git tag --sort=-v:refname | head -n 1)
           if [ -z "$tag" ]; then
             tag="v1.0.0"
@@ -52,14 +50,14 @@ jobs:
           echo "next_tag=$tag" >> $GITHUB_ENV
         shell: bash
 
-      # Login a Docker Hub
+      # 7. Login a Docker Hub
       - name: Login a Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # Build y push de Docker (solo si tests y lint pasan)
+      # 8. Build y push de Docker
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -68,7 +66,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
-      # Deploy a Railway
+      # 9. Deploy a Railway
       - name: Deploy to Railway
-        run: |
+        run:  |
           echo "Deploy usando Railway: imagen ya subida a Docker Hub"
