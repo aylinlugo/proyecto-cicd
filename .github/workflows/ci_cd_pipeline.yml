@@ -9,27 +9,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      #  Descargar el código del repositorio
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Login en Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      #  Construir y subir la imagen Docker
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./app           # Carpeta con tu código
-          file: ./Dockerfile       # Dockerfile en la raíz
+          context: ./app
+          file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
-      # Desplegar en el servidor por SSH
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -38,17 +34,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_SSH_PORT }}
           script: |
-            echo "Deteniendo contenedor anterior si existe..."
+            docker pull ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
             docker stop proyecto-cicd || true
             docker rm proyecto-cicd || true
-
-            echo "Extrayendo nueva imagen..."
-            docker pull ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
-
-            echo "Ejecutando contenedor..."
-            docker run -d \
-              -p 3000:3000 \
-              --name proyecto-cicd \
-              ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
-
-            echo "Despliegue completado ✅"
+            docker run -d -p 3000:3000 --name proyecto-cicd ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
