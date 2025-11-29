@@ -13,29 +13,32 @@ jobs:
       NODE_ENV: production
 
     steps:
-      # 1. Descargar el código
+      # Descargar el código
       - name: Checkout del repositorio
         uses: actions/checkout@v3
 
-      # 2. Configurar Node.js
+      # Configurar Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
-      # 3. Instalar dependencias
+      # Instalar dependencias dentro de /app
       - name: Instalar dependencias
         run: npm ci
+        working-directory: ./app
 
-      # 4. Linter: validar errores de sintaxis
+      # Linter: validar errores de sintaxis
       - name: Ejecutar ESLint
-        run: npx eslint ./app/**/*.js
+        run: npx eslint ./**/*.js
+        working-directory: ./app
 
-      # 5. Ejecutar pruebas unitarias
+      # Ejecutar pruebas unitarias (incluye Supertest)
       - name: Ejecutar pruebas
         run: npm test
+        working-directory: ./app
 
-      # 6. Generar entorno y versionamiento (solo si tests pasan)
+      # Generar entorno y liberar versión (solo si tests pasan)
       - name: Generar entorno y versionamiento
         run: |
           tag=$(git tag --sort=-v:refname | head -n 1)
@@ -50,23 +53,23 @@ jobs:
           echo "next_tag=$tag" >> $GITHUB_ENV
         shell: bash
 
-      # 7. Login a Docker Hub
+      # Login a Docker Hub
       - name: Login a Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # 8. Build y push de Docker
+      # Build y push de Docker (solo si tests y lint pasan)
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./app
+          file: ./app/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USER }}/proyecto-cicd:latest
 
-      # 9. Deploy a Railway
+      # Deploy a Railway
       - name: Deploy to Railway
-        run:  |
+        run: |
           echo "Deploy usando Railway: imagen ya subida a Docker Hub"
