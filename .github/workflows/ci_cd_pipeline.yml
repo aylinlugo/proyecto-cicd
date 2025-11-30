@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
@@ -56,26 +59,45 @@ jobs:
             exit 1
           fi
           docker stop test-container && docker rm test-container
+          echo "Healthcheck exitoso"
 
       - name: Validar métricas de disponibilidad (SLI)
         run: |
           docker run -d -p 3000:3000 --name metrics-container ${{ env.DOCKER_IMAGE }}
           sleep 10
           METRICS=$(curl -s http://localhost:3000/metrics | grep http_requests_success_total)
-          echo "Métricas de SLI: $METRICS"
+          echo "Métricas SLI encontradas: $METRICS"
           docker stop metrics-container && docker rm metrics-container
 
-      - name: Crear release automático
+      - name: Calcular siguiente versión
+        id: version
+        shell: pwsh
+        run: |
+          Write-Host "==> Calculando siguiente versión..."
+          $tag = git tag --sort=-v:refname | Select-Object -First 1
+          if (-not $tag) { $tag = "v1.0.0" }
+          else {
+            $version = $tag.TrimStart("v") -split '\.'
+            $major = [int]$version[0]
+            $minor = [int]$version[1]
+            $patch = [int]$version[2] + 1
+            $tag = "v$major.$minor.$patch"
+          }
+          echo "next_tag=$tag" >> $env:GITHUB_OUTPUT
+          Write-Host "Versión siguiente generada: $tag"
+
+      - name: Crear Release automático
+        if: github.ref == 'refs/heads/main'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: "Release v${{ github.run_number }}"
+          tag_name: ${{ steps.version.outputs.next_tag }}
+          release_name: "Lanzamiento ${{ steps.version.outputs.next_tag }}"
           body: |
-            🚀 Nueva liberación automática
-            - Build correcta
-            - Pruebas aprobadas
-            - Imagen Docker publicada
-            - Healthcheck verificado
-            - Métricas disponibles
+            🚀 Nueva versión generada automáticamente
+            - Imagen Docker actualizada: ${{ env.DOCKER_IMAGE }}
+            - Healthcheck OK
+            - Pruebas unitarias superadas
+            - Métricas SLI validadas
+            - Pipeline CI/CD ejecutado sin errores
