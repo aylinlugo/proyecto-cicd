@@ -64,3 +64,18 @@ jobs:
           METRICS=$(curl -s http://localhost:3000/metrics | grep http_requests_success_total)
           echo "Métricas de SLI: $METRICS"
           docker stop metrics-container && docker rm metrics-container
+
+      - name: Crear release automático
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: "Release v${{ github.run_number }}"
+          body: |
+             Nueva liberación automática
+            - Build correcta
+            - Pruebas aprobadas
+            - Imagen Docker publicada
+            - Healthcheck y métricas verificadas
+             Deploy aprobado
