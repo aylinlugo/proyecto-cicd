@@ -73,9 +73,9 @@ jobs:
           tag_name: v${{ github.run_number }}
           release_name: "Release v${{ github.run_number }}"
           body: |
-             Nueva liberación automática
+            🚀 Nueva liberación automática
             - Build correcta
             - Pruebas aprobadas
             - Imagen Docker publicada
-            - Healthcheck y métricas verificadas
-             Deploy aprobado
+            - Healthcheck verificado
+            - Métricas disponibles
