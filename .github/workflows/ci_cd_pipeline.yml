@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write   
+
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
@@ -17,6 +20,8 @@ jobs:
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  
 
       - name: Configurar Node.js
         uses: actions/setup-node@v3
@@ -51,7 +56,7 @@ jobs:
           sleep 10
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health)
           if [ $STATUS -ne 200 ]; then
-            echo "Healthcheck falló"
+            echo " Healthcheck falló"
             docker logs test-container
             exit 1
           fi
@@ -62,33 +67,32 @@ jobs:
           docker run -d -p 3000:3000 --name metrics-container ${{ env.DOCKER_IMAGE }}
           sleep 10
           METRICS=$(curl -s http://localhost:3000/metrics | grep http_requests_success_total)
-          echo "Métricas de SLI: $METRICS"
+          echo "Métricas recolectadas: $METRICS"
           docker stop metrics-container && docker rm metrics-container
-
-      #########################################################
-      # AGREGADO CORRECTO DE CONTROL DE VERSIONES
-      #########################################################
 
       - name: Calcular siguiente versión
         id: version
-        shell: pwsh
         run: |
-          Write-Host "==> Calculando siguiente versión..."
-          $tag = git tag --sort=-v:refname | Select-Object -First 1
-          if (-not $tag) { $tag = "v1.0.0" }
-          else {
-            $version = $tag.TrimStart("v") -split '\.'
-            $major = [int]$version[0]
-            $minor = [int]$version[1]
-            $patch = [int]$version[2] + 1
-            $tag = "v$major.$minor.$patch"
-          }
-          echo "next_tag=$tag" >> $env:GITHUB_OUTPUT
-          Write-Host "Siguiente versión: $tag"
+          TAG=$(git tag --sort=-v:refname | head -n 1)
+          if [ -z "$TAG" ]; then
+            TAG="v1.0.0"
+          else
+            NUM=${TAG#v}
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$NUM"
+            PATCH=$((PATCH+1))
+            TAG="v$MAJOR.$MINOR.$PATCH"
+          fi
+          echo "next_tag=$TAG" >> $GITHUB_OUTPUT
+          echo " Próxima versión: $TAG"
 
-      - name: Crear Release en GitHub
+      - name: Crear tag
+        run: |
+          git tag ${{ steps.version.outputs.next_tag }}
+          git push origin ${{ steps.version.outputs.next_tag }}
+
+      - name: Crear release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.next_tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: "Lanzamiento ${{ steps.version.outputs.next_tag }}"
+          body: "🚀 Nueva versión generada automáticamente desde CI/CD"
